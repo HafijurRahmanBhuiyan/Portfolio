@@ -142,7 +142,7 @@
     musicMasterGain = audioCtx.createGain();
     musicMasterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
     // Smooth fade-in over 1.8 seconds
-    musicMasterGain.gain.linearRampToValueAtTime(0.09, audioCtx.currentTime + 1.8);
+    musicMasterGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 1.8);
     musicMasterGain.connect(audioCtx.destination);
 
     padFilter = audioCtx.createBiquadFilter();
