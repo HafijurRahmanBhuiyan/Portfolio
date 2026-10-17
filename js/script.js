@@ -15,20 +15,36 @@
   // =========================================================================
   var audioCtx = null;
   var isMusicPlaying = false;
+  var musicEnabled = true; // Desired state: music is ON by default
   var musicMasterGain = null;
   var musicTimer = null;
   var activeVoices = [];
   var soundToggleBtn = document.getElementById('soundToggle');
   var soundIcon = document.getElementById('soundIcon');
 
+  var autoStartGestureArmed = false;
+  var suppressToggleUntil = 0;
+
   function initAudioContext() {
-    if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
-      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AudioContextClass();
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+    try {
+      if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        // Safety net: whenever the browser lets the context run (e.g. it
+        // releases the autoplay block), start the music if it should be on.
+        audioCtx.onstatechange = function () {
+          if (audioCtx.state === 'running' && musicEnabled && !isMusicPlaying) {
+            startBackgroundMusic();
+          }
+        };
+      }
+      if (audioCtx && audioCtx.state === 'suspended' && audioCtx.resume) {
+        var resumePromise = audioCtx.resume();
+        if (resumePromise && typeof resumePromise.catch === 'function') {
+          resumePromise.catch(function () {});
+        }
+      }
+    } catch (e) {}
   }
 
   // Harmonic chord progressions (frequencies in Hz): Peaceful Ambient Soundscape in D Dorian
@@ -133,6 +149,7 @@
   }
 
   function startBackgroundMusic() {
+    if (isMusicPlaying) return;
     initAudioContext();
     if (!audioCtx) return;
 
@@ -142,7 +159,7 @@
     musicMasterGain = audioCtx.createGain();
     musicMasterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
     // Smooth fade-in over 1.8 seconds
-    musicMasterGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 1.8);
+    musicMasterGain.gain.linearRampToValueAtTime(3, audioCtx.currentTime + 1.8);
     musicMasterGain.connect(audioCtx.destination);
 
     padFilter = audioCtx.createBiquadFilter();
@@ -160,6 +177,7 @@
     delayGain.connect(delayNode);
     delayGain.connect(musicMasterGain);
 
+    disarmAutoStartGesture();
     updateAudioButtonUI(true);
     ambientStep();
     showToast('♫ Ambient background music playing');
@@ -205,15 +223,110 @@
     }
   }
 
+  // Attempt to begin playback right now. Browsers block audio until a user
+  // gesture, so this may leave the context suspended; armAutoStartGesture()
+  // then guarantees playback begins on the visitor's first interaction.
+  function attemptAutoplay() {
+    if (!musicEnabled || isMusicPlaying) return;
+
+    initAudioContext();
+    if (!audioCtx) return;
+
+    if (audioCtx.state === 'running') {
+      startBackgroundMusic();
+      return;
+    }
+
+    // resume() resolves once the context is allowed to run.
+    try {
+      var resumePromise = audioCtx.resume && audioCtx.resume();
+      if (resumePromise && typeof resumePromise.then === 'function') {
+        resumePromise.then(function () {
+          if (musicEnabled && !isMusicPlaying && audioCtx.state === 'running') {
+            startBackgroundMusic();
+          }
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  var AUTO_START_EVENTS = ['pointerdown', 'mousedown', 'touchstart', 'touchend', 'keydown', 'click', 'wheel', 'scroll'];
+
+  function handleAutoStartGesture(e) {
+    // The first interaction is the gesture the browser requires to unblock
+    // audio. If it happens on the sound button, suppress that button's own
+    // click toggle so we don't start and immediately mute in one gesture.
+    if (soundToggleBtn && e && e.target && soundToggleBtn.contains(e.target)) {
+      suppressToggleUntil = Date.now() + 500;
+    }
+    attemptAutoplay();
+  }
+
+  function armAutoStartGesture() {
+    if (autoStartGestureArmed) return;
+    autoStartGestureArmed = true;
+    AUTO_START_EVENTS.forEach(function (evt) {
+      window.addEventListener(evt, handleAutoStartGesture, true);
+    });
+  }
+
+  function disarmAutoStartGesture() {
+    if (!autoStartGestureArmed) return;
+    autoStartGestureArmed = false;
+    AUTO_START_EVENTS.forEach(function (evt) {
+      window.removeEventListener(evt, handleAutoStartGesture, true);
+    });
+  }
+
+  function enableMusicExperience() {
+    musicEnabled = true;
+
+    initAudioContext();
+    if (!audioCtx) {
+      updateAudioButtonUI(false);
+      return;
+    }
+
+    updateAudioButtonUI(true);
+    attemptAutoplay();
+
+    // Autoplay blocked: begin automatically on the next interaction.
+    if (!isMusicPlaying) {
+      armAutoStartGesture();
+    }
+  }
+
+  function disableMusicExperience() {
+    musicEnabled = false;
+    disarmAutoStartGesture();
+
+    if (isMusicPlaying) {
+      stopBackgroundMusic();
+    } else {
+      updateAudioButtonUI(false);
+      showToast('Background music muted');
+    }
+  }
+
   if (soundToggleBtn) {
     soundToggleBtn.addEventListener('click', function () {
+      // Ignore the click that merely served as the first-interaction gesture.
+      if (Date.now() < suppressToggleUntil) return;
       if (isMusicPlaying) {
-        stopBackgroundMusic();
+        disableMusicExperience();
       } else {
-        startBackgroundMusic();
+        enableMusicExperience();
       }
     });
   }
+
+  // Background music is ON by default on every visit. Attempt to start it
+  // immediately, then retry just after load. If the browser blocks autoplay,
+  // armAutoStartGesture() starts it on the visitor's first interaction.
+  musicEnabled = true;
+  enableMusicExperience();
+  window.addEventListener('load', attemptAutoplay);
+  setTimeout(attemptAutoplay, 400);
 
   function playUiTone(freqStart, freqEnd, duration, type, gainLevel) {
     try {
@@ -473,9 +586,20 @@
     var width = canvas.width = window.innerWidth;
     var height = canvas.height = window.innerHeight;
 
+    // Debounced resize. Mobile browsers fire `resize` continuously while the
+    // URL bar collapses/expands during a scroll; reallocating the full-screen
+    // canvas on every one of those events caused stutter while scrolling.
+    var resizeTimer = null;
+    function applyResize() {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+      if (w === width && h === height) return; // skip no-op resizes entirely
+      width = canvas.width = w;
+      height = canvas.height = h;
+    }
     function resizeCanvas() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(applyResize, 150);
     }
     window.addEventListener('resize', resizeCanvas, { passive: true });
 
@@ -497,15 +621,28 @@
       pointerY = e.clientY;
     }, { passive: true });
 
-    function renderCanvas() {
+    // The ambient layer is purely decorative and always sits behind the
+    // content, so it is capped at ~30fps (motion is delta-timed, so it looks
+    // identical) which roughly halves the compositing work it forces on the
+    // frosted-glass cards above it. Connection lines are also grouped into a
+    // few alpha buckets and stroked once each instead of one stroke per line.
+    var AMBIENT_STEP = 1000 / 30;
+    var lastAmbientFrame = 0;
+    var ambientRaf = 0;
+    var CONNECT_BUCKETS = 5;
+    var connectBuckets = [[], [], [], [], []];
+
+    function drawAmbient(dt) {
       ctx.clearRect(0, 0, width, height);
       var isLight = document.documentElement.getAttribute('data-theme') === 'light';
       var rgb = isLight ? '37, 99, 235' : '0, 240, 255';
 
+      for (var b = 0; b < CONNECT_BUCKETS; b++) connectBuckets[b].length = 0;
+
       for (var i = 0; i < particles.length; i++) {
         var p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
 
         if (p.x < 0) p.x = width;
         if (p.x > width) p.x = 0;
@@ -515,9 +652,9 @@
         var dx = pointerX - p.x;
         var dy = pointerY - p.y;
         var dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 130) {
-          p.x -= (dx / dist) * 0.8;
-          p.y -= (dy / dist) * 0.8;
+        if (dist < 130 && dist > 0) {
+          p.x -= (dx / dist) * 0.8 * dt;
+          p.y -= (dy / dist) * 0.8 * dt;
         }
 
         ctx.beginPath();
@@ -531,18 +668,49 @@
           var djy = p.y - p2.y;
           var d = Math.sqrt(djx * djx + djy * djy);
           if (d < 110) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = 'rgba(' + rgb + ', ' + ((1 - d / 110) * 0.14) + ')';
-            ctx.lineWidth = 0.75;
-            ctx.stroke();
+            var bucket = Math.min(CONNECT_BUCKETS - 1, Math.floor((1 - d / 110) * CONNECT_BUCKETS));
+            connectBuckets[bucket].push(p.x, p.y, p2.x, p2.y);
           }
         }
       }
-      requestAnimationFrame(renderCanvas);
+
+      for (var k = 0; k < CONNECT_BUCKETS; k++) {
+        var seg = connectBuckets[k];
+        if (!seg.length) continue;
+        ctx.beginPath();
+        for (var s = 0; s < seg.length; s += 4) {
+          ctx.moveTo(seg[s], seg[s + 1]);
+          ctx.lineTo(seg[s + 2], seg[s + 3]);
+        }
+        var lineAlpha = ((k + 0.5) / CONNECT_BUCKETS) * 0.14;
+        ctx.strokeStyle = 'rgba(' + rgb + ', ' + lineAlpha.toFixed(3) + ')';
+        ctx.lineWidth = 0.75;
+        ctx.stroke();
+      }
     }
-    renderCanvas();
+
+    function ambientLoop(now) {
+      ambientRaf = 0;
+      if (document.hidden) return; // restarted by visibilitychange
+      if (!now) now = performance.now();
+      if (lastAmbientFrame && now - lastAmbientFrame < AMBIENT_STEP - 1) {
+        ambientRaf = requestAnimationFrame(ambientLoop);
+        return;
+      }
+      var dt = lastAmbientFrame ? Math.min(2.5, (now - lastAmbientFrame) / (1000 / 60)) : 1;
+      lastAmbientFrame = now;
+      drawAmbient(dt);
+      ambientRaf = requestAnimationFrame(ambientLoop);
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && !ambientRaf) {
+        lastAmbientFrame = 0;
+        ambientRaf = requestAnimationFrame(ambientLoop);
+      }
+    });
+
+    ambientRaf = requestAnimationFrame(ambientLoop);
   }
 
   // =========================================================================
@@ -554,6 +722,7 @@
     var mouseY = window.innerHeight / 2;
     var curX = mouseX;
     var curY = mouseY;
+    var glowRaf = 0;
 
     window.addEventListener('mousemove', function (e) {
       mouseX = e.clientX;
@@ -561,13 +730,21 @@
     }, { passive: true });
 
     function renderGlow() {
+      glowRaf = 0;
+      if (document.hidden) return; // restarted by visibilitychange
       curX += (mouseX - curX) * 0.15;
       curY += (mouseY - curY) * 0.15;
-      cursorGlow.style.left = curX + 'px';
-      cursorGlow.style.top = curY + 'px';
-      requestAnimationFrame(renderGlow);
+      // transform is compositor-only; animating left/top forced a layout
+      // recalculation for the glow on every single frame.
+      cursorGlow.style.transform = 'translate3d(' + curX.toFixed(1) + 'px, ' + curY.toFixed(1) + 'px, 0) translate(-50%, -50%)';
+      glowRaf = requestAnimationFrame(renderGlow);
     }
-    renderGlow();
+
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && !glowRaf) glowRaf = requestAnimationFrame(renderGlow);
+    });
+
+    glowRaf = requestAnimationFrame(renderGlow);
   }
 
   // =========================================================================
@@ -580,11 +757,31 @@
   var experienceSection = document.getElementById('experience');
   var lastScrollY = window.pageYOffset || document.documentElement.scrollTop;
   var scrollTicking = false;
+  // Cached so the handler never has to read `scrollHeight` (which forces a
+  // synchronous layout when styles are dirty) on every single scroll frame.
+  var cachedDocHeight = 0;
+  function refreshDocHeight() {
+    cachedDocHeight = document.documentElement.scrollHeight - window.innerHeight;
+  }
+  window.addEventListener('resize', refreshDocHeight, { passive: true });
+  window.addEventListener('load', refreshDocHeight);
 
   function updateScrollDynamics() {
+    // --- All layout reads happen first (avoids forced reflow) ---
     var currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
     var winHeight = window.innerHeight;
-    var docHeight = document.documentElement.scrollHeight - winHeight;
+    var docHeight = cachedDocHeight > 0 ? cachedDocHeight : (document.documentElement.scrollHeight - winHeight);
+
+    var expTop = 0;
+    var expHeight = 0;
+    var trackTimeline = timelineProgress && experienceSection;
+    if (trackTimeline) {
+      var expRect = experienceSection.getBoundingClientRect();
+      expTop = expRect.top;
+      expHeight = expRect.height;
+    }
+
+    // --- Then the writes ---
     var progress = docHeight > 0 ? (currentScrollY / docHeight) * 100 : 0;
     var clampedProgress = Math.min(100, Math.max(0, progress));
 
@@ -609,14 +806,9 @@
       document.body.classList.remove('scrolling-down');
     }
 
-    if (timelineProgress && experienceSection) {
-      var expRect = experienceSection.getBoundingClientRect();
-      var expTop = expRect.top;
-      var expHeight = expRect.height;
-      if (expTop < winHeight && expTop + expHeight > 0) {
-        var pct = Math.min(1, Math.max(0, (winHeight * 0.65 - expTop) / expHeight));
-        timelineProgress.style.height = (pct * 100).toFixed(1) + '%';
-      }
+    if (trackTimeline && expTop < winHeight && expTop + expHeight > 0) {
+      var pct = Math.min(1, Math.max(0, (winHeight * 0.65 - expTop) / expHeight));
+      timelineProgress.style.height = (pct * 100).toFixed(1) + '%';
     }
 
     lastScrollY = currentScrollY;
@@ -629,6 +821,7 @@
       scrollTicking = true;
     }
   }, { passive: true });
+  refreshDocHeight();
   updateScrollDynamics();
 
   if (scrollDepthPill) {
@@ -770,18 +963,29 @@
   if (!isTouch) {
     cards3D.forEach(function (card) {
       var ticking = false;
+      var rect = null;
+
+      // Resolve the micro-parallax targets once instead of querying the DOM
+      // on every pointer move (querySelector + getBoundingClientRect per frame
+      // forced a synchronous layout on each mousemove).
+      var innerMedia = card.querySelector('.pcard-logo, .modal-media-wrap, .tl-dot');
+      var innerTitle = card.querySelector('h3');
+      var innerBtn = card.querySelector('.card-3d-open-btn');
 
       card.addEventListener('mouseenter', function () {
         card.classList.add('is-magnet-active');
+        rect = card.getBoundingClientRect();
       });
 
       card.addEventListener('mousemove', function (e) {
         if (ticking) return;
         ticking = true;
+        var pointerX = e.clientX;
+        var pointerY = e.clientY;
         requestAnimationFrame(function () {
-          var rect = card.getBoundingClientRect();
-          var x = e.clientX - rect.left;
-          var y = e.clientY - rect.top;
+          if (!rect) rect = card.getBoundingClientRect();
+          var x = pointerX - rect.left;
+          var y = pointerY - rect.top;
           var w = rect.width;
           var h = rect.height;
 
@@ -810,15 +1014,12 @@
           card.style.setProperty('--card-shadow-y', (20 - magY * 1.2).toFixed(1) + 'px');
 
           // Multi-layer micro-parallax for inner elements
-          var innerMedia = card.querySelector('.pcard-logo, .modal-media-wrap, .tl-dot');
           if (innerMedia) {
             innerMedia.style.transform = 'translate3d(' + (normX * 4.5).toFixed(2) + 'px, ' + (normY * 4.5).toFixed(2) + 'px, 28px)';
           }
-          var innerTitle = card.querySelector('h3');
           if (innerTitle) {
             innerTitle.style.transform = 'translate3d(' + (normX * 2.8).toFixed(2) + 'px, ' + (normY * 2.8).toFixed(2) + 'px, 24px)';
           }
-          var innerBtn = card.querySelector('.card-3d-open-btn');
           if (innerBtn) {
             innerBtn.style.transform = 'translate3d(' + (normX * 3.5).toFixed(2) + 'px, ' + (normY * 3.5).toFixed(2) + 'px, 26px)';
           }
@@ -834,17 +1035,14 @@
         card.style.setProperty('--card-shadow-x', '0px');
         card.style.setProperty('--card-shadow-y', '22px');
 
-        var innerMedia = card.querySelector('.pcard-logo, .modal-media-wrap, .tl-dot');
         if (innerMedia) {
           innerMedia.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
           innerMedia.style.transform = '';
         }
-        var innerTitle = card.querySelector('h3');
         if (innerTitle) {
           innerTitle.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
           innerTitle.style.transform = '';
         }
-        var innerBtn = card.querySelector('.card-3d-open-btn');
         if (innerBtn) {
           innerBtn.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
           innerBtn.style.transform = '';
@@ -1085,15 +1283,18 @@
     var currentRotY = 0;
     var targetRotX = 0;
     var targetRotY = 0;
+    var modalRect = null;
 
     modalCard.addEventListener('mouseenter', function () {
       if (currentCardData.isFlipped) return;
       modalCard.style.transition = 'transform 0.12s cubic-bezier(0.16, 1, 0.3, 1)';
+      modalRect = modalCard.getBoundingClientRect();
     });
 
     modalCard.addEventListener('mousemove', function (e) {
       if (currentCardData.isFlipped) return;
-      var rect = modalCard.getBoundingClientRect();
+      if (!modalRect) modalRect = modalCard.getBoundingClientRect();
+      var rect = modalRect;
       var x = e.clientX - rect.left;
       var y = e.clientY - rect.top;
       var normX = (x / rect.width) * 2 - 1;

@@ -701,7 +701,10 @@ h2.sec-title{
   opacity: 0;
   transform: perspective(1200px) rotateX(12deg) translateY(38px) scale(0.96);
   transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+  /* No persistent will-change here: with ~28 .reveal elements this used to
+     promote every one of them to its own compositor layer for the whole
+     session (huge GPU memory cost, especially on mobile). opacity/transform
+     transitions are already compositor-accelerated. */
 }
 .reveal.in{
   opacity: 1;
@@ -720,9 +723,11 @@ body.scrolling-up .reveal:not(.in){
   border: 1px solid var(--border-bright);
   border-radius: 20px;
   box-shadow: var(--shadow-md);
+  /* Frosted surface samples the animated ambient canvas behind it, so every
+     visible card re-blurs a large region on each composited frame. Kept at the
+     original radius to preserve the exact look; cost is reduced elsewhere. */
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   transform-style: preserve-3d;
-  will-change: transform;
   transition:
     transform 0.65s cubic-bezier(0.19, 1, 0.22, 1),
     border-color 0.25s ease,
@@ -732,6 +737,9 @@ body.scrolling-up .reveal:not(.in){
   outline: none;
 }
 .card-3d.is-magnet-active{
+  /* Promote only the card currently under the pointer instead of all ~20
+     cards at all times. */
+  will-change: transform;
   transition:
     transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.25s ease,
