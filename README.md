@@ -202,7 +202,7 @@ oscillator pairs (sine + detuned triangle)
 | Delay feedback | `0.28` @ 0.38s | `js/script.js:157` |
 | UI sound effects | `0.025`–`0.035` | `js/script.js:238`–`241` |
 
-> **Browser autoplay policy:** all modern browsers block audio until the user interacts with the page. The soundscape therefore begins when the user presses the speaker button, by design.
+> **Browser autoplay policy:** the site attempts to start the soundscape on page load. Browsers may block audible autoplay, especially on a new deployed origin; when that happens, the soundscape starts on the visitor's first trusted interaction. The speaker button remains available to pause or resume it.
 
 ---
 
@@ -309,7 +309,7 @@ The layout is responsive from 320px upward, with a dedicated mobile navigation d
 
 ## Known Limitations
 
-- **Audio requires a user gesture.** Browsers block unsolicited audio; the soundscape starts on the speaker-button click.
+- **Audio autoplay depends on browser policy.** The site attempts playback on load and starts on the first trusted interaction when the browser blocks autoplay.
 - **UI sound effects bypass the music master gain.** They connect directly to `audioCtx.destination`, so music volume changes do not affect click/flip/modal sounds.
 - **Theme preference only.** Nothing else is persisted — audio state and filter selections reset on reload.
 - **`node_modules` is not gitignored.** Run `npm install` locally and add it to `.gitignore` before committing, or dependency folders will appear as untracked files.
