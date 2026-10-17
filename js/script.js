@@ -250,9 +250,19 @@
     } catch (e) {}
   }
 
-  var AUTO_START_EVENTS = ['pointerdown', 'mousedown', 'touchstart', 'touchend', 'keydown', 'click', 'wheel', 'scroll'];
+  // Only true *activation* events can unblock audio (a scroll or wheel does
+  // NOT grant the user gesture browsers require). This list covers every
+  // browser/platform: pointer + legacy mouse, touch (start/end) for iOS, and
+  // keyboard for desktop users who only scroll.
+  var AUTO_START_EVENTS = [
+    'pointerdown', 'mousedown', 'pointerup',
+    'touchstart', 'touchend',
+    'keydown', 'click'
+  ];
 
   function handleAutoStartGesture(e) {
+    if (e && e.isTrusted === false) return;
+
     // The first interaction is the gesture the browser requires to unblock
     // audio. If it happens on the sound button, suppress that button's own
     // click toggle so we don't start and immediately mute in one gesture.
@@ -287,11 +297,13 @@
       return;
     }
 
-    updateAudioButtonUI(true);
     attemptAutoplay();
 
     // Autoplay blocked: begin automatically on the next interaction.
     if (!isMusicPlaying) {
+      if (soundToggleBtn) {
+        soundToggleBtn.setAttribute('title', 'Background Music: Ready (Click or interact to start)');
+      }
       armAutoStartGesture();
     }
   }
