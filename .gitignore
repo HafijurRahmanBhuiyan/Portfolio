@@ -1,2 +1,13 @@
 .DS_Store
 Thumbs.db
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+.playwright/
+outputs/
+.work/
+uploads/
