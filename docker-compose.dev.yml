@@ -1,0 +1,110 @@
+# Explicit local-development profile. HTTP and localhost origins are allowed
+# here ONLY. Never use this file for production.
+#
+#   1. Generate the admin hash (password is read from stdin, never printed):
+#        node scripts/hash-admin-password.mjs
+#   2. Put it in .env, quoted because Argon2id hashes contain '$':
+#        ADMIN_PASSWORD_HASH='$argon2id$...'
+#   3. Validate without printing secrets:
+#        docker compose -f docker-compose.dev.yml config -q
+#   4. Start:
+#        docker compose -f docker-compose.dev.yml up --build
+#
+# Fallback credentials below are development-only. The production validator
+# rejects values beginning with dev-only/do-not-use, so they cannot be reused.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-only-postgres-password-do-not-use-0001}
+    volumes:
+      - portfolio-db-dev:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+  api:
+    build:
+      context: .
+      target: runner
+    command: ['node', 'server.js']
+    environment:
+      NODE_ENV: development
+      APP_ENV: development
+      API_PORT: 4000
+      UPLOAD_DIR: /app/uploads
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: portfolio
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD:-dev-only-postgres-password-do-not-use-0001}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.invalid}
+      # Required even in development. Generate it with:
+      #   node scripts/hash-admin-password.mjs
+      # Then set ADMIN_PASSWORD_HASH='$argon2id$...' in .env (keep the quotes).
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Generate one with node scripts/hash-admin-password.mjs, then set quoted ADMIN_PASSWORD_HASH in .env}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-do-not-use-in-production-0001}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      TRUST_PROXY_HOPS: '0'
+      HTTPS_TERMINATED: 'false'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - portfolio-uploads-dev:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+  web:
+    build:
+      context: .
+      target: runner
+      args:
+        API_INTERNAL_URL: http://api:4000
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      API_INTERNAL_URL: http://api:4000
+      HTTPS_TERMINATED: 'false'
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+volumes:
+  portfolio-db-dev:
+  portfolio-uploads-dev:

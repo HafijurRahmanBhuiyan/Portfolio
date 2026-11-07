@@ -1,0 +1,120 @@
+# Production profile only.
+#
+# Start with:
+#   docker compose config -q
+#   docker compose up --build -d
+#
+# Every value below is required and must come from the deployment secret
+# store, never from a committed file. Missing values fail before containers
+# start. Local development uses docker-compose.dev.yml instead; its fallback
+# values are rejected by the production configuration validator.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - portfolio-db:/var/lib/postgresql/data
+      - ./scripts/db-healthcheck.sh:/usr/local/bin/db-healthcheck.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'sh /usr/local/bin/db-healthcheck.sh']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 512M
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+  api:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    command: ['node', 'server.js']
+    environment:
+      API_PORT: 4000
+      UPLOAD_DIR: /app/uploads
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: portfolio
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set ADMIN_PASSWORD_HASH in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:?Set the HTTPS TRUSTED_ORIGINS in .env}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:?Set TRUST_PROXY_HOPS to the exact trusted proxy chain length (0-10)}
+      HTTPS_TERMINATED: ${HTTPS_TERMINATED:?Set HTTPS_TERMINATED=true in .env}
+      APP_ENV: ${APP_ENV:?Set APP_ENV=production in .env}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - portfolio-uploads:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 384M
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+  web:
+    build:
+      context: .
+      target: runner
+      args:
+        API_INTERNAL_URL: http://api:4000
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_INTERNAL_URL: http://api:4000
+      HTTPS_TERMINATED: ${HTTPS_TERMINATED:?Set HTTPS_TERMINATED=true in .env}
+      # Optional for a single instance. Set one shared value for every replica
+      # when Server Actions are introduced or the web tier is scaled.
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 768M
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+volumes:
+  portfolio-db:
+  portfolio-uploads:

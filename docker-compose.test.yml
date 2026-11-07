@@ -1,0 +1,96 @@
+# Disposable integration/browser test stack. All values are generated for the
+# current test run by scripts/test-stack.mjs. The database uses tmpfs and no
+# named volume, so teardown cannot touch real portfolio data.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:?}
+    ports:
+      - '127.0.0.1:${TEST_DB_PORT:?}:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB"',
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+  api:
+    build:
+      context: .
+      target: runner
+    command: ['node', 'server.js']
+    environment:
+      NODE_ENV: ${TEST_NODE_ENV:-production}
+      APP_ENV: ${TEST_APP_ENV:-production}
+      API_PORT: 4000
+      UPLOAD_DIR: /app/uploads
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: portfolio
+      PGUSER: portfolio
+      PGPASSWORD: ${TEST_POSTGRES_PASSWORD:?}
+      ADMIN_EMAIL: ${TEST_ADMIN_EMAIL:?}
+      ADMIN_PASSWORD_HASH: ${TEST_ADMIN_PASSWORD_HASH:?}
+      SESSION_SECRET: ${TEST_SESSION_SECRET:?}
+      TRUSTED_ORIGINS: ${TEST_TRUSTED_ORIGINS:?}
+      TRUST_PROXY_HOPS: '0'
+      HTTPS_TERMINATED: ${TEST_HTTPS_TERMINATED:-true}
+    ports:
+      - '127.0.0.1:${TEST_API_PORT:?}:4000'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 5s
+    logging:
+      options: { max-size: '10m', max-file: '3' }
+  web:
+    build:
+      context: .
+      target: runner
+      args:
+        API_INTERNAL_URL: http://api:4000
+    environment:
+      NODE_ENV: ${TEST_NODE_ENV:-production}
+      PORT: 3000
+      API_INTERNAL_URL: http://api:4000
+      HTTPS_TERMINATED: ${TEST_HTTPS_TERMINATED:-true}
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${TEST_ACTION_KEY:?}
+    ports:
+      - '127.0.0.1:${TEST_WEB_PORT:?}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging:
+      options: { max-size: '10m', max-file: '3' }

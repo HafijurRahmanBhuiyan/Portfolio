@@ -3,12 +3,41 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "build": "echo 'Static build ready'",
-    "lint": "echo 'No lint errors'"
+    "dev": "next dev",
+    "start": "node scripts/start-web.mjs",
+    "build": "next build && node scripts/scrub-next-build-keys.mjs",
+    "api": "node server.js",
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check server.js middleware.js lib app js/admin.js js/projects.js eslint.config.mjs next.config.mjs playwright.config.js scripts tests",
+    "typecheck": "node --check server.js && node --check middleware.js && node --check js/admin.js && node --check js/projects.js && node --check lib/config.js && node --check lib/deployment.js && node --check lib/migrations.js && node --check lib/projects.js && node --check lib/runtime.js && node --check lib/trusted-html.js && node --check scripts/start-web.mjs && node --check scripts/scrub-next-build-keys.mjs && node --check scripts/hash-admin-password.mjs && node --check scripts/smoke.mjs && node --check scripts/check-compose.mjs && node --check scripts/check-duplicates.mjs && node --check scripts/scan-artifacts.mjs && node --check scripts/run-integration.mjs && node --check scripts/run-browser-tests.mjs && node --check scripts/test-stack.mjs && node --check playwright.config.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "test:integration": "node scripts/run-integration.mjs",
+    "test:browser": "node scripts/run-browser-tests.mjs",
+    "test:smoke": "node scripts/test-stack.mjs smoke",
+    "test:dev": "node scripts/test-stack.mjs dev",
+    "check:compose": "node scripts/check-compose.mjs",
+    "check:duplicates": "node scripts/check-duplicates.mjs",
+    "scan:artifacts": "node scripts/scan-artifacts.mjs",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run check:duplicates && npm test && npm run build && npm run scan:artifacts",
+    "audit": "npm audit --audit-level=high",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "argon2": "^0.44.0",
+    "express": "^5.1.0",
+    "next": "^15.5.6",
+    "pg": "^8.16.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
+    "prettier": "^3.9.10",
+    "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }
