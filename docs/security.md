@@ -229,8 +229,10 @@ profile and requires the production variables above.
 
 7. If the web tier is scaled across replicas, set one shared
    `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` for all replicas. Without Server
-   Actions the entrypoint generates a runtime key and the build scrubs its
-   generated preview/action keys from `.next`.
+   Actions the entrypoint generates a runtime key. The build scrubs its
+   generated action and preview signing/encryption keys from `.next`, while
+   retaining the generated `previewModeId` because Vercel requires it as a
+   prerender bypass token of at least 32 characters.
 8. Take a verified PostgreSQL backup before upgrades. Stop safely with
    `docker compose down`; never use `docker compose down -v` in production
    because it deletes the database volume.

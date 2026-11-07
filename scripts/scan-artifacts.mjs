@@ -57,12 +57,18 @@ if (middleware?.middleware?.['/']?.env) {
 
 const prerender = readJson('prerender-manifest.json');
 if (prerender?.preview) {
-  for (const key of [
-    'previewModeId',
-    'previewModeSigningKey',
-    'previewModeEncryptionKey',
-  ])
+  // Vercel reads previewModeId as the prerender bypassToken and requires a
+  // valid value of at least 32 characters. The signing/encryption keys are
+  // still scrubbed and must remain empty in the build artifact.
+  for (const key of ['previewModeSigningKey', 'previewModeEncryptionKey'])
     assertEmpty('prerender-manifest.json', prerender.preview[key], key);
+  if (
+    typeof prerender.preview.previewModeId !== 'string' ||
+    prerender.preview.previewModeId.length < 32
+  )
+    findings.push(
+      'prerender bypass token must be at least 32 characters in prerender-manifest.json',
+    );
 }
 
 function walk(directory) {

@@ -275,7 +275,7 @@ If `.env` is missing `ADMIN_PASSWORD_HASH`, Compose stops before starting contai
 
 The API applies versioned additive migrations at startup and seeds project rows only when the collection is empty. Session tokens are opaque and only their HMAC hashes are stored. The collection update uses an ETag and returns `409` for stale edits. The database health check is read-only; credential rotation must be coordinated separately.
 
-The Next.js build scrubs its generated preview and Server Action keys from `.next` artifacts. The web entrypoint creates fresh runtime keys before starting Next.js, keeping those keys out of the image. If Server Actions are introduced or the web tier is scaled across replicas, set one shared `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` through the runtime secret store for all replicas.
+The Next.js build scrubs its generated Server Action keys and preview signing/encryption keys from `.next` artifacts. It retains Next.js's generated `previewModeId` because Vercel uses it as the prerender bypass token and requires at least 32 characters. The web entrypoint creates fresh runtime keys before starting Next.js. If Server Actions are introduced or the web tier is scaled across replicas, set one shared `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` through the runtime secret store for all replicas.
 
 | Script                     | Purpose                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------ |

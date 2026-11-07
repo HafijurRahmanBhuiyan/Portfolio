@@ -27,7 +27,10 @@ write('server/middleware-manifest.json', middleware);
 
 const prerender = read('prerender-manifest.json');
 if (prerender.preview) {
-  prerender.preview.previewModeId = '';
+  // Vercel's final serverless packaging reads previewModeId as its
+  // prerender bypassToken and requires at least 32 characters. Next.js
+  // generates a valid value during the build, so retain only this identifier
+  // while removing the signing and encryption keys below.
   prerender.preview.previewModeSigningKey = '';
   prerender.preview.previewModeEncryptionKey = '';
 }
