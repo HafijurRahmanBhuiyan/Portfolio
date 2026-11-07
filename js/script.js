@@ -1,4 +1,4 @@
-// Hafijur Rahman Bhuiyan Portfolio — Executive 3D Physics, Audio & Interactive Systems
+// Hafijur Rahman Bhuiyan Portfolio — Executive Interactive Systems, Audio & Animations
 (function () {
   'use strict';
 
@@ -946,7 +946,6 @@
   // 16. Interactive Projects Filter (AI, Full-Stack, Trading)
   // =========================================================================
   var pfilterBtns = document.querySelectorAll('.pfilter-btn');
-  var projectCards = document.querySelectorAll('.pcard');
   pfilterBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       playClickSound();
@@ -954,7 +953,7 @@
       btn.classList.add('active');
       var pfilter = btn.getAttribute('data-pfilter');
 
-      projectCards.forEach(function (pcard) {
+      document.querySelectorAll('.pcard').forEach(function (pcard) {
         var pcat = pcard.getAttribute('data-pcat') || '';
         if (pfilter === 'all' || pcat.indexOf(pfilter) !== -1) {
           pcard.style.display = '';
@@ -967,107 +966,9 @@
   });
 
   // =========================================================================
-  // 17. SUBTLE 'MAGNETIC' HOVER INTERACTION & 3D DEPTH ENGINE
-  // =========================================================================
-  var cards3D = document.querySelectorAll('.card-3d');
-  var isTouch = !window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-
-  if (!isTouch) {
-    cards3D.forEach(function (card) {
-      var ticking = false;
-      var rect = null;
-
-      // Resolve the micro-parallax targets once instead of querying the DOM
-      // on every pointer move (querySelector + getBoundingClientRect per frame
-      // forced a synchronous layout on each mousemove).
-      var innerMedia = card.querySelector('.pcard-logo, .modal-media-wrap, .tl-dot');
-      var innerTitle = card.querySelector('h3');
-      var innerBtn = card.querySelector('.card-3d-open-btn');
-
-      card.addEventListener('mouseenter', function () {
-        card.classList.add('is-magnet-active');
-        rect = card.getBoundingClientRect();
-      });
-
-      card.addEventListener('mousemove', function (e) {
-        if (ticking) return;
-        ticking = true;
-        var pointerX = e.clientX;
-        var pointerY = e.clientY;
-        requestAnimationFrame(function () {
-          if (!rect) rect = card.getBoundingClientRect();
-          var x = pointerX - rect.left;
-          var y = pointerY - rect.top;
-          var w = rect.width;
-          var h = rect.height;
-
-          // Normalized coordinates relative to card center [-1, 1]
-          var normX = (x / w) * 2 - 1;
-          var normY = (y / h) * 2 - 1;
-
-          // Subtle magnetic displacement (card slightly follows cursor movement)
-          var maxPull = 9.5; // pixels
-          var magX = normX * maxPull;
-          var magY = normY * maxPull;
-
-          // 3D physical rotation towards cursor
-          var rotX = normY * -8.5;
-          var rotY = normX * 10.5;
-
-          // Elevated Z-depth for tangible physical presence
-          var liftZ = 14;
-
-          card.style.transform = 'perspective(1200px) translate3d(' + magX.toFixed(2) + 'px, ' + magY.toFixed(2) + 'px, ' + liftZ + 'px) rotateX(' + rotX.toFixed(2) + 'deg) rotateY(' + rotY.toFixed(2) + 'deg)';
-          card.style.setProperty('--glare-x', ((x / w) * 100).toFixed(1) + '%');
-          card.style.setProperty('--glare-y', ((y / h) * 100).toFixed(1) + '%');
-
-          // Dynamic shadow offset in opposite direction of magnetic pull (gives floating height sensation)
-          card.style.setProperty('--card-shadow-x', (-magX * 1.4).toFixed(1) + 'px');
-          card.style.setProperty('--card-shadow-y', (20 - magY * 1.2).toFixed(1) + 'px');
-
-          // Multi-layer micro-parallax for inner elements
-          if (innerMedia) {
-            innerMedia.style.transform = 'translate3d(' + (normX * 4.5).toFixed(2) + 'px, ' + (normY * 4.5).toFixed(2) + 'px, 28px)';
-          }
-          if (innerTitle) {
-            innerTitle.style.transform = 'translate3d(' + (normX * 2.8).toFixed(2) + 'px, ' + (normY * 2.8).toFixed(2) + 'px, 24px)';
-          }
-          if (innerBtn) {
-            innerBtn.style.transform = 'translate3d(' + (normX * 3.5).toFixed(2) + 'px, ' + (normY * 3.5).toFixed(2) + 'px, 26px)';
-          }
-
-          ticking = false;
-        });
-      }, { passive: true });
-
-      card.addEventListener('mouseleave', function () {
-        card.classList.remove('is-magnet-active');
-        // Elastic spring back to center
-        card.style.transform = 'perspective(1200px) translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg)';
-        card.style.setProperty('--card-shadow-x', '0px');
-        card.style.setProperty('--card-shadow-y', '22px');
-
-        if (innerMedia) {
-          innerMedia.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
-          innerMedia.style.transform = '';
-        }
-        if (innerTitle) {
-          innerTitle.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
-          innerTitle.style.transform = '';
-        }
-        if (innerBtn) {
-          innerBtn.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
-          innerBtn.style.transform = '';
-        }
-      });
-    });
-  }
-
-  // =========================================================================
-  // 18. PROJECT & CARD DETAILS INSPECTION MODAL SYSTEM
+  // 17. PROJECT & CARD DETAILS INSPECTION MODAL SYSTEM
   // =========================================================================
   var modalBackdrop = document.getElementById('card3DModal');
-  var modalCardWrapper = document.getElementById('modalCardWrapper');
   var modalCard = document.getElementById('modalCard');
   var modalBody = document.getElementById('modalBody');
   var modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -1075,16 +976,338 @@
   var modalFlipBtn = document.getElementById('modalFlipBtn');
   var flipBtnText = document.getElementById('flipBtnText');
 
-  var currentCardData = { frontHtml: '', backHtml: '', isFlipped: false };
+  var currentCardData = { frontNode: null, backNode: null, isFlipped: false };
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+  function appendAll(parent) {
+    for (var i = 1; i < arguments.length; i++) {
+      if (arguments[i]) parent.appendChild(arguments[i]);
+    }
+    return parent;
+  }
+  function textFrom(root, selector) {
+    var node = root && root.querySelector(selector);
+    return node ? node.textContent.trim() : '';
+  }
+  function safeUrl(value, sameOriginOnly) {
+    try {
+      var parsed = new URL(String(value || ''), location.href);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+      if (sameOriginOnly && parsed.origin !== location.origin) return '';
+      return String(value).charAt(0) === '#'
+        ? '#' + parsed.hash.slice(1)
+        : parsed.href;
+    } catch (e) {
+      return '';
+    }
+  }
+  function makeLink(label, href, className, options) {
+    options = options || {};
+    var url = safeUrl(href, options.sameOriginOnly);
+    if (!url) return null;
+    var link = el('a', className, label);
+    link.href = url;
+    if (options.download) link.setAttribute('download', options.download);
+    if (options.closeModal) link.setAttribute('data-close-modal', '');
+    if (url.charAt(0) !== '#') {
+      try {
+        if (new URL(url, location.href).origin !== location.origin) {
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+        }
+      } catch (e) {}
+    }
+    return link;
+  }
+  function linkBox(link) {
+    var box = el('div', 'modal-links-box');
+    if (link) box.appendChild(link);
+    return box;
+  }
+  function resumeLink() {
+    var link = makeLink('Download Full Resume', 'assets/resume.pdf', 'btn btn-primary', {
+      download: 'Hafijur_Rahman_Bhuiyan_Resume.pdf',
+    });
+    if (!link) return null;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    [
+      ['width', '15'],
+      ['height', '15'],
+      ['viewBox', '0 0 24 24'],
+      ['fill', 'none'],
+      ['stroke', 'currentColor'],
+      ['stroke-width', '2'],
+      ['stroke-linecap', 'round'],
+      ['stroke-linejoin', 'round'],
+    ].forEach(function (pair) {
+      svg.setAttribute(pair[0], pair[1]);
+    });
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4');
+    var polyline = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'polyline',
+    );
+    polyline.setAttribute('points', '7 10 12 15 17 10');
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '12');
+    line.setAttribute('y1', '15');
+    line.setAttribute('x2', '12');
+    line.setAttribute('y2', '3');
+    appendAll(svg, path, polyline, line);
+    link.prepend(svg);
+    return link;
+  }
+  function tagsBox(source) {
+    var box = el('div', 'modal-tags-box');
+    var tags = el('div', 'tags');
+    if (source)
+      source.querySelectorAll('.tag').forEach(function (tag) {
+        tags.appendChild(el('span', 'tag', tag.textContent));
+      });
+    box.appendChild(tags);
+    return box;
+  }
+  function listBox(lines) {
+    var list = el('ul', 'modal-list');
+    lines.forEach(function (line) {
+      list.appendChild(el('li', '', line));
+    });
+    return list;
+  }
+  function projectLinks(source) {
+    var box = el('div', 'modal-links-box');
+    if (source)
+      Array.prototype.forEach.call(source.querySelectorAll('a'), function (old) {
+        var link = makeLink(
+          old.textContent,
+          old.getAttribute('href') || '',
+          old.className || 'plink',
+        );
+        if (link) box.appendChild(link);
+      });
+    return box;
+  }
+  function buildProject(cardElement, back) {
+    var root = el('div', 'modal-project-content');
+    var title = textFrom(cardElement, 'h3');
+    var links = cardElement.querySelector('.pcard-links');
+    if (!back) {
+      var logoImg = cardElement.querySelector('.pcard-logo img');
+      var imageUrl = logoImg
+        ? safeUrl(logoImg.getAttribute('src') || '', true)
+        : '';
+      if (imageUrl) {
+        var media = el('div', 'modal-media-wrap');
+        var img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = logoImg.alt || 'Project logo';
+        media.appendChild(img);
+        root.appendChild(media);
+      }
+      appendAll(
+        root,
+        el('div', 'modal-meta-kicker', 'Project · Selected Work'),
+        el('h2', 'modal-title', title),
+        el('div', 'modal-desc', textFrom(cardElement, 'p.desc')),
+        tagsBox(cardElement.querySelector('.tags')),
+        projectLinks(links),
+      );
+      return root;
+    }
+    appendAll(
+      root,
+      el(
+        'div',
+        'modal-meta-kicker',
+        'System Architecture & Implementation',
+      ),
+      el('h2', 'modal-title', title),
+      el(
+        'p',
+        'modal-desc',
+        'Technical engineering specifications, architectural invariants, and production implementation stack:',
+      ),
+      listBox([
+        'End-to-End Pipeline: Architected for resilience, high throughput, and zero-downtime execution.',
+        'Data & API Layer: Clean schema boundaries, robust input validation, and real API integrations.',
+        'Production Security: Authentication flows, CSRF protection, and prepared query defenses.',
+        'Frontend Performance: Responsive touch layout and efficient rendering.',
+      ]),
+      projectLinks(links),
+    );
+    return root;
+  }
+  function buildSkill(cardElement, back) {
+    var root = el('div', 'modal-project-content');
+    var title = textFrom(cardElement, 'h3');
+    if (!back) {
+      appendAll(
+        root,
+        el('div', 'modal-meta-kicker', 'Technical Expertise'),
+        el('h2', 'modal-title', title),
+        el(
+          'p',
+          'modal-desc',
+          'Core competencies, production toolchains, and industry-standard technologies leveraged across end-to-end applications.',
+        ),
+        tagsBox(cardElement.querySelector('.tags')),
+        linkBox(
+          makeLink('Explore Shipped Projects', '#projects', 'btn btn-primary', {
+            closeModal: true,
+          }),
+        ),
+      );
+      return root;
+    }
+    appendAll(
+      root,
+      el('div', 'modal-meta-kicker', 'Skill Mastery & Application'),
+      el('h2', 'modal-title', title + ' — Architecture'),
+      el(
+        'p',
+        'modal-desc',
+        'Used across 5+ delivered production systems, university research, and high-concurrency client platforms.',
+      ),
+      listBox([
+        'Production code standards with typed contracts and comprehensive automated testing.',
+        'Cross-platform deployment across Render, Vercel, Netlify, and containerized Docker runtimes.',
+      ]),
+      linkBox(
+        makeLink('Get in Touch', '#contact', 'btn btn-primary', {
+          closeModal: true,
+        }),
+      ),
+    );
+    return root;
+  }
+  function buildExperience(cardElement, back) {
+    var root = el('div', 'modal-project-content');
+    if (!back) {
+      var sourceList = cardElement.querySelector('ul');
+      var lines = sourceList
+        ? Array.prototype.map.call(sourceList.querySelectorAll('li'), function (
+            item,
+          ) {
+            return item.textContent.trim();
+          })
+        : [];
+      appendAll(
+        root,
+        el('div', 'modal-meta-kicker', 'Professional Track Record'),
+        el('h2', 'modal-title', textFrom(cardElement, 'h3')),
+        el('div', 'modal-subtitle', textFrom(cardElement, '.tl-meta')),
+        listBox(lines),
+        linkBox(resumeLink()),
+      );
+      return root;
+    }
+    appendAll(
+      root,
+      el(
+        'div',
+        'modal-meta-kicker',
+        'Internship Deliverables & Outcomes',
+      ),
+      el('h2', 'modal-title', 'FNF PLANET — Servico Platform'),
+      el(
+        'p',
+        'modal-desc',
+        'Full lifecycle ownership of service marketplace booking workflows inspired by Sheba.xyz.',
+      ),
+      listBox([
+        'Cross-functional team sprint execution with weekly code reviews.',
+        'Production DRF API integration, role dashboards, and payment flow resilience.',
+      ]),
+      linkBox(resumeLink()),
+    );
+    return root;
+  }
+  function buildEducation(cardElement, back) {
+    var root = el('div', 'modal-project-content');
+    var title = textFrom(cardElement, 'h3');
+    if (!back) {
+      appendAll(
+        root,
+        el('div', 'modal-meta-kicker', 'Academic Background'),
+        el('h2', 'modal-title', title),
+        el(
+          'div',
+          'modal-subtitle',
+          textFrom(cardElement, '.inst') +
+            ' (' +
+            textFrom(cardElement, '.yr') +
+            ')',
+        ),
+        el(
+          'p',
+          'modal-desc',
+          'Formal computer science foundation including data structures, algorithms, database systems, software architecture, machine learning, and operating systems.',
+        ),
+        linkBox(
+          makeLink('Contact Hafijur', '#contact', 'btn btn-primary', {
+            closeModal: true,
+          }),
+        ),
+      );
+      return root;
+    }
+    appendAll(
+      root,
+      el('div', 'modal-meta-kicker', 'Academic Focus & Coursework'),
+      el('h2', 'modal-title', title),
+      listBox([
+        'Data Structures & Algorithms, Object-Oriented Programming (C/Python/JS).',
+        'Relational & Distributed Database Systems, Web Systems Architecture.',
+        'Machine Learning, Deep Learning, Image Classification (CNNs).',
+      ]),
+      linkBox(
+        makeLink('Contact Hafijur', '#contact', 'btn btn-primary', {
+          closeModal: true,
+        }),
+      ),
+    );
+    return root;
+  }
+  function buildFact(cardElement, back) {
+    var root = el('div', 'modal-project-content');
+    var title =
+      cardElement.getAttribute('data-card-title') ||
+      textFrom(cardElement, 'b') ||
+      'Detail';
+    var description =
+      cardElement.getAttribute('data-card-desc') ||
+      textFrom(cardElement, 'span');
+    appendAll(
+      root,
+      el(
+        'div',
+        'modal-meta-kicker',
+        back ? 'Profile Overview' : 'Key Information',
+      ),
+      el('h2', 'modal-title', title),
+      el('p', 'modal-desc', description),
+      linkBox(
+        makeLink('Get in Touch', '#contact', 'btn btn-primary', {
+          closeModal: true,
+        }),
+      ),
+    );
+    return root;
+  }
 
   function openCardDetails(cardElement) {
     if (!modalBackdrop || !modalBody) return;
     playModalOpenSound();
 
-    modalCard.classList.remove('flipped');
+    if (modalCard) modalCard.classList.remove('flipped');
     currentCardData.isFlipped = false;
     if (flipBtnText) flipBtnText.textContent = 'Architecture Blueprint';
-    modalCard.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateZ(0)';
 
     var isProject = cardElement.classList.contains('pcard');
     var isSkill = cardElement.classList.contains('skill-card');
@@ -1092,108 +1315,27 @@
     var isEducation = cardElement.classList.contains('edu-item');
     var isFact = cardElement.classList.contains('fact');
 
-    var frontHtml = '';
-    var backHtml = '';
-
     if (isProject) {
-      var logoImg = cardElement.querySelector('.pcard-logo img');
-      var title = cardElement.querySelector('h3') ? cardElement.querySelector('h3').textContent.trim() : '';
-      var desc = cardElement.querySelector('p.desc') ? cardElement.querySelector('p.desc').innerHTML : '';
-      var tagsContainer = cardElement.querySelector('.tags');
-      var linksContainer = cardElement.querySelector('.pcard-links');
-
-      if (logoImg) {
-        frontHtml += '<div class="modal-media-wrap"><img src="' + logoImg.src + '" alt="' + (logoImg.alt || 'Project logo') + '"></div>';
-      }
-      frontHtml += '<div class="modal-meta-kicker">Project · Selected Work</div>';
-      frontHtml += '<h2 class="modal-title">' + title + '</h2>';
-      frontHtml += '<div class="modal-desc">' + desc + '</div>';
-
-      if (tagsContainer) {
-        frontHtml += '<div class="modal-tags-box"><div class="tags">' + tagsContainer.innerHTML + '</div></div>';
-      }
-
-      if (linksContainer) {
-        frontHtml += '<div class="modal-links-box">' + linksContainer.innerHTML + '</div>';
-      }
-
-      // Back Face Architecture Details
-      backHtml += '<div class="modal-meta-kicker">System Architecture &amp; Implementation</div>';
-      backHtml += '<h2 class="modal-title">' + title + '</h2>';
-      backHtml += '<p class="modal-desc">Technical engineering specifications, architectural invariants, and production implementation stack:</p>';
-      backHtml += '<ul class="modal-list">';
-      backHtml += '<li><b>End-to-End Pipeline:</b> Architected for resilience, high throughput, and zero-downtime execution.</li>';
-      backHtml += '<li><b>Data &amp; API Layer:</b> Clean schema boundaries, robust input validation, and real API integrations.</li>';
-      backHtml += '<li><b>Production Security:</b> JWT / OAuth authentication flows, CSRF protection, and prepared query defenses.</li>';
-      backHtml += '<li><b>Frontend Performance:</b> Hardware-accelerated UI rendering, responsive touch layout, and minimal bundle footprint.</li>';
-      backHtml += '</ul>';
-      if (linksContainer) {
-        backHtml += '<div class="modal-links-box">' + linksContainer.innerHTML + '</div>';
-      }
+      currentCardData.frontNode = buildProject(cardElement, false);
+      currentCardData.backNode = buildProject(cardElement, true);
     } else if (isSkill) {
-      var skillTitle = cardElement.querySelector('h3') ? cardElement.querySelector('h3').textContent.trim() : '';
-      var skillTags = cardElement.querySelector('.tags') ? cardElement.querySelector('.tags').innerHTML : '';
-
-      frontHtml += '<div class="modal-meta-kicker">Technical Expertise</div>';
-      frontHtml += '<h2 class="modal-title">' + skillTitle + '</h2>';
-      frontHtml += '<p class="modal-desc">Core competencies, production toolchains, and industry-standard technologies leveraged across end-to-end applications.</p>';
-      frontHtml += '<div class="modal-tags-box"><div class="tags">' + skillTags + '</div></div>';
-      frontHtml += '<div class="modal-links-box"><a href="#projects" class="btn btn-primary" onclick="window.closeCard3DModal()">Explore Shipped Projects</a></div>';
-
-      backHtml += '<div class="modal-meta-kicker">Skill Mastery &amp; Application</div>';
-      backHtml += '<h2 class="modal-title">' + skillTitle + ' — Architecture</h2>';
-      backHtml += '<p class="modal-desc">Used across 5+ delivered production systems, university research, and high-concurrency client platforms.</p>';
-      backHtml += '<ul class="modal-list"><li>Production code standards with typed contracts and comprehensive automated testing.</li><li>Cross-platform deployment across Render, Vercel, Netlify, and containerized Docker runtimes.</li></ul>';
-      backHtml += '<div class="modal-links-box"><a href="#contact" class="btn btn-primary" onclick="window.closeCard3DModal()">Get in Touch</a></div>';
+      currentCardData.frontNode = buildSkill(cardElement, false);
+      currentCardData.backNode = buildSkill(cardElement, true);
     } else if (isExperience) {
-      var expTitle = cardElement.querySelector('h3') ? cardElement.querySelector('h3').textContent.trim() : '';
-      var expMeta = cardElement.querySelector('.tl-meta') ? cardElement.querySelector('.tl-meta').textContent.trim() : '';
-      var expUl = cardElement.querySelector('ul') ? cardElement.querySelector('ul').innerHTML : '';
-
-      frontHtml += '<div class="modal-meta-kicker">Professional Track Record</div>';
-      frontHtml += '<h2 class="modal-title">' + expTitle + '</h2>';
-      frontHtml += '<div class="modal-subtitle">' + expMeta + '</div>';
-      frontHtml += '<ul class="modal-list">' + expUl + '</ul>';
-      frontHtml += '<div class="modal-links-box"><a class="btn btn-primary" href="assets/resume.pdf" download="Hafijur_Rahman_Bhuiyan_Resume.pdf"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Full Resume</a></div>';
-
-      backHtml += '<div class="modal-meta-kicker">Internship Deliverables &amp; Outcomes</div>';
-      backHtml += '<h2 class="modal-title">FNF PLANET — Servico Platform</h2>';
-      backHtml += '<p class="modal-desc">Full lifecycle ownership of service marketplace booking workflows inspired by Sheba.xyz.</p>';
-      backHtml += '<ul class="modal-list"><li>Cross-functional team sprint execution with weekly code reviews.</li><li>Production DRF API integration, role dashboards, and payment flow resilience.</li></ul>';
-      backHtml += '<div class="modal-links-box"><a class="btn btn-primary" href="assets/resume.pdf" download="Hafijur_Rahman_Bhuiyan_Resume.pdf">Download Full Resume</a></div>';
+      currentCardData.frontNode = buildExperience(cardElement, false);
+      currentCardData.backNode = buildExperience(cardElement, true);
     } else if (isEducation) {
-      var eduTitle = cardElement.querySelector('h3') ? cardElement.querySelector('h3').textContent.trim() : '';
-      var eduInst = cardElement.querySelector('.inst') ? cardElement.querySelector('.inst').textContent.trim() : '';
-      var eduYr = cardElement.querySelector('.yr') ? cardElement.querySelector('.yr').textContent.trim() : '';
-
-      frontHtml += '<div class="modal-meta-kicker">Academic Background</div>';
-      frontHtml += '<h2 class="modal-title">' + eduTitle + '</h2>';
-      frontHtml += '<div class="modal-subtitle">' + eduInst + ' (' + eduYr + ')</div>';
-      frontHtml += '<p class="modal-desc">Formal computer science foundation including data structures, algorithms, database systems, software architecture, machine learning, and operating systems.</p>';
-      frontHtml += '<div class="modal-links-box"><a href="#contact" class="btn btn-primary" onclick="window.closeCard3DModal()">Contact Hafijur</a></div>';
-
-      backHtml += '<div class="modal-meta-kicker">Academic Focus &amp; Coursework</div>';
-      backHtml += '<h2 class="modal-title">' + eduTitle + '</h2>';
-      backHtml += '<ul class="modal-list"><li>Data Structures &amp; Algorithms, Object-Oriented Programming (C/Python/JS).</li><li>Relational &amp; Distributed Database Systems, Web Systems Architecture.</li><li>Machine Learning, Deep Learning, Image Classification (CNNs).</li></ul>';
-      backHtml += '<div class="modal-links-box"><a href="#contact" class="btn btn-primary" onclick="window.closeCard3DModal()">Contact Hafijur</a></div>';
+      currentCardData.frontNode = buildEducation(cardElement, false);
+      currentCardData.backNode = buildEducation(cardElement, true);
     } else if (isFact) {
-      var factTitle = cardElement.getAttribute('data-card-title') || (cardElement.querySelector('b') ? cardElement.querySelector('b').textContent.trim() : 'Detail');
-      var factDesc = cardElement.getAttribute('data-card-desc') || (cardElement.querySelector('span') ? cardElement.querySelector('span').textContent.trim() : '');
-
-      frontHtml += '<div class="modal-meta-kicker">Key Information</div>';
-      frontHtml += '<h2 class="modal-title">' + factTitle + '</h2>';
-      frontHtml += '<p class="modal-desc">' + factDesc + '</p>';
-      frontHtml += '<div class="modal-links-box"><a href="#contact" class="btn btn-primary" onclick="window.closeCard3DModal()">Get in Touch</a></div>';
-
-      backHtml += '<div class="modal-meta-kicker">Profile Overview</div>';
-      backHtml += '<h2 class="modal-title">' + factTitle + '</h2>';
-      backHtml += '<p class="modal-desc">' + factDesc + '</p>';
-      backHtml += '<div class="modal-links-box"><a href="#contact" class="btn btn-primary" onclick="window.closeCard3DModal()">Get in Touch</a></div>';
+      currentCardData.frontNode = buildFact(cardElement, false);
+      currentCardData.backNode = buildFact(cardElement, true);
+    } else {
+      currentCardData.frontNode = el('div', 'modal-project-content');
+      currentCardData.backNode = el('div', 'modal-project-content');
     }
 
-    currentCardData.frontHtml = frontHtml;
-    currentCardData.backHtml = backHtml;
-    modalBody.innerHTML = frontHtml;
+    modalBody.replaceChildren(currentCardData.frontNode.cloneNode(true));
 
     modalBackdrop.classList.remove('closing');
     modalBackdrop.classList.add('active');
@@ -1209,22 +1351,15 @@
       e.stopPropagation();
       playFlipSound();
       currentCardData.isFlipped = !currentCardData.isFlipped;
-      modalCard.style.transition = 'transform 0.55s cubic-bezier(0.19, 1, 0.22, 1)';
 
       if (currentCardData.isFlipped) {
-        modalCard.style.transform = 'perspective(1500px) rotateY(180deg)';
         if (flipBtnText) flipBtnText.textContent = 'Flip to Overview';
-        setTimeout(function () {
-          modalBody.innerHTML = currentCardData.backHtml;
-          modalBody.style.transform = 'rotateY(180deg)';
-        }, 200);
+        if (currentCardData.backNode)
+          modalBody.replaceChildren(currentCardData.backNode.cloneNode(true));
       } else {
-        modalCard.style.transform = 'perspective(1500px) rotateY(0deg)';
         if (flipBtnText) flipBtnText.textContent = 'Architecture Blueprint';
-        setTimeout(function () {
-          modalBody.innerHTML = currentCardData.frontHtml;
-          modalBody.style.transform = 'none';
-        }, 200);
+        if (currentCardData.frontNode)
+          modalBody.replaceChildren(currentCardData.frontNode.cloneNode(true));
       }
     });
   }
@@ -1238,7 +1373,6 @@
       modalBackdrop.classList.remove('closing');
       modalBackdrop.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
-      modalBody.style.transform = 'none';
     }, 320);
   };
 
@@ -1254,105 +1388,36 @@
     });
   }
 
+  // Event delegation keeps cloned modal nodes interactive without inline
+  // handlers. Links marked data-close-modal dismiss the modal after activation.
+  if (modalBody) {
+    modalBody.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close-modal]')) window.closeCard3DModal();
+    });
+  }
+
   window.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && modalBackdrop && modalBackdrop.classList.contains('active')) {
       window.closeCard3DModal();
     }
   });
 
-  cards3D.forEach(function (card) {
-    card.addEventListener('click', function (e) {
+  document.addEventListener('click', function (e) {
+    var card=e.target.closest('.card-3d'); if(!card) return;
       if (e.target.closest('a') && !e.target.closest('.pcard-details-btn')) {
         return;
       }
       openCardDetails(card);
-    });
-
-    card.addEventListener('keydown', function (e) {
+  });
+  document.addEventListener('keydown', function (e) {
+    var card=e.target.closest('.card-3d'); if(!card) return;
       if (e.key === 'Enter' || e.key === ' ') {
         if (!e.target.closest('a')) {
           e.preventDefault();
           openCardDetails(card);
         }
       }
-    });
   });
-
-  // Attach details button click handlers directly
-  document.querySelectorAll('.pcard-details-btn').forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var card = btn.closest('.pcard');
-      if (card) openCardDetails(card);
-    });
-  });
-
-  if (modalCard) {
-    var modalDragging = false;
-    var startX = 0;
-    var startY = 0;
-    var currentRotX = 0;
-    var currentRotY = 0;
-    var targetRotX = 0;
-    var targetRotY = 0;
-    var modalRect = null;
-
-    modalCard.addEventListener('mouseenter', function () {
-      if (currentCardData.isFlipped) return;
-      modalCard.style.transition = 'transform 0.12s cubic-bezier(0.16, 1, 0.3, 1)';
-      modalRect = modalCard.getBoundingClientRect();
-    });
-
-    modalCard.addEventListener('mousemove', function (e) {
-      if (currentCardData.isFlipped) return;
-      if (!modalRect) modalRect = modalCard.getBoundingClientRect();
-      var rect = modalRect;
-      var x = e.clientX - rect.left;
-      var y = e.clientY - rect.top;
-      var normX = (x / rect.width) * 2 - 1;
-      var normY = (y / rect.height) * 2 - 1;
-
-      var magX = normX * 12;
-      var magY = normY * 10;
-      targetRotX = normY * -13;
-      targetRotY = normX * 15;
-
-      modalCard.style.transform = 'perspective(1500px) translate3d(' + magX.toFixed(2) + 'px, ' + magY.toFixed(2) + 'px, 16px) rotateX(' + targetRotX.toFixed(2) + 'deg) rotateY(' + targetRotY.toFixed(2) + 'deg)';
-      modalCard.style.setProperty('--modal-glare-x', ((x / rect.width) * 100).toFixed(1) + '%');
-      modalCard.style.setProperty('--modal-glare-y', ((y / rect.height) * 100).toFixed(1) + '%');
-    }, { passive: true });
-
-    modalCard.addEventListener('mouseleave', function () {
-      if (currentCardData.isFlipped) return;
-      modalCard.style.transition = 'transform 0.65s cubic-bezier(0.19, 1, 0.22, 1)';
-      modalCard.style.transform = 'perspective(1500px) translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg)';
-    });
-
-    modalCard.addEventListener('touchstart', function (e) {
-      if (e.touches.length === 1 && !currentCardData.isFlipped) {
-        modalDragging = true;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    modalCard.addEventListener('touchmove', function (e) {
-      if (!modalDragging || e.touches.length !== 1 || currentCardData.isFlipped) return;
-      var dx = e.touches[0].clientX - startX;
-      var dy = e.touches[0].clientY - startY;
-
-      targetRotY = Math.max(-25, Math.min(25, currentRotY + dx * 0.25));
-      targetRotX = Math.max(-20, Math.min(20, currentRotX - dy * 0.25));
-
-      modalCard.style.transform = 'perspective(1500px) rotateX(' + targetRotX.toFixed(2) + 'deg) rotateY(' + targetRotY.toFixed(2) + 'deg) translateZ(12px)';
-    }, { passive: true });
-
-    modalCard.addEventListener('touchend', function () {
-      modalDragging = false;
-      currentRotX = targetRotX;
-      currentRotY = targetRotY;
-    });
-  }
 
   if (modalResetBtn && modalCard) {
     modalResetBtn.addEventListener('click', function (e) {
@@ -1360,9 +1425,8 @@
       playClickSound();
       currentCardData.isFlipped = false;
       if (flipBtnText) flipBtnText.textContent = 'Architecture Blueprint';
-      modalBody.innerHTML = currentCardData.frontHtml;
-      modalBody.style.transform = 'none';
-      modalCard.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateZ(0)';
+      if (currentCardData.frontNode)
+        modalBody.replaceChildren(currentCardData.frontNode.cloneNode(true));
     });
   }
 

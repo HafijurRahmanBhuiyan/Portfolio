@@ -1,0 +1,114 @@
+[
+  {
+    "categories": "ai fullstack",
+    "tags": [
+      "React",
+      "TypeScript",
+      "Node.js",
+      "Express",
+      "MongoDB",
+      "OAuth 2.0",
+      "Generative AI"
+    ],
+    "live": "https://ai-career-agent-1bn8.onrender.com",
+    "github": "https://github.com/HafijurRahmanBhuiyan/Ai-Career-Agent",
+    "subtitle": "AI CAREER AUTOMATION PLATFORM",
+    "url": "ai-career-agent-1bn8.onrender.com",
+    "status": "Live Demo",
+    "image": "assets/logos/ai-career-agent.jpg",
+    "imageAlt": "AI Career Agent logo",
+    "title": "AI Career Agent — AI-Powered Career Automation Platform",
+    "description": "Full-stack platform unifying GitHub, Gmail, LinkedIn and live job sources into one workflow for AI project analysis, job matching, application tracking and server-side CV/PDF generation. Runs a multi-provider AI fallback chain with OAuth/JWT auth and background sync."
+  },
+  {
+    "categories": "fullstack",
+    "tags": [
+      "React.js",
+      "DRF",
+      "PostgreSQL",
+      "Tailwind"
+    ],
+    "live": "https://servico-frontend-0fl0.onrender.com",
+    "github": "https://github.com/HafijurRahmanBhuiyan/servico",
+    "subtitle": "SERVICE MARKETPLACE",
+    "url": "servico-frontend-0fl0.onrender.com",
+    "status": "Live",
+    "image": "assets/logos/servico.jpg",
+    "imageAlt": "Servico logo",
+    "title": "Servico — Service Booking & Management",
+    "description": "Home-services marketplace connecting customers, providers and admins via role-based dashboards, bKash/Nagad/bank/cash payment workflows and in-app messaging."
+  },
+  {
+    "categories": "ai fintech",
+    "tags": [
+      "TypeScript",
+      "Fastify",
+      "PostgreSQL",
+      "WebSocket",
+      "Docker"
+    ],
+    "live": "",
+    "github": "https://github.com/HafijurRahmanBhuiyan/TradePilot-AI",
+    "subtitle": "ALGORITHMIC TRADING MONOREPO",
+    "url": "github.com/TradePilot-AI",
+    "status": "TradingEngine",
+    "image": "assets/logos/tradepilot-ai.jpg",
+    "imageAlt": "TradePilot AI logo",
+    "title": "TradePilot AI — Trading Analysis Platform",
+    "description": "TypeScript monorepo turning real-time Binance/MT5 data into trading signals via RSI, EMA, MACD, ATR, VWAP strategy engines, AI-validated by Gemini/OpenAI, with a Chrome side-panel extension on TradingView."
+  },
+  {
+    "categories": "fullstack",
+    "tags": [
+      "PHP",
+      "MySQL",
+      "AJAX",
+      "Bootstrap"
+    ],
+    "live": "https://fastaid.fwh.is",
+    "github": "https://github.com/HafijurRahmanBhuiyan/fast-aid",
+    "subtitle": "EMERGENCY MEDICAL NETWORK",
+    "url": "fastaid.fwh.is",
+    "status": "Live",
+    "image": "assets/logos/fastaid.jpg",
+    "imageAlt": "FastAid logo",
+    "title": "FastAid — Emergency Medical Assistance",
+    "description": "Connects patients with nearby approved volunteers via Patient/Volunteer/Admin workflows, real-time AJAX request status, and secure backend practices (CSRF, hashing, prepared statements)."
+  },
+  {
+    "categories": "fullstack fintech",
+    "tags": [
+      "React 19",
+      "TypeScript",
+      "Vite",
+      "Tailwind"
+    ],
+    "live": "https://breeze-restaurant.netlify.app",
+    "github": "https://github.com/HafijurRahmanBhuiyan/Breeze-Restaurant",
+    "subtitle": "BILINGUAL RESTAURANT PLATFORM",
+    "url": "breeze-restaurant.netlify.app",
+    "status": "Live",
+    "image": "assets/logos/breeze-restaurant.jpg",
+    "imageAlt": "Breeze Restaurant logo",
+    "title": "Breeze Restaurant — Bilingual Website",
+    "description": "Mobile-friendly, bilingual (EN/BN) single-page site with a filterable menu, lightbox gallery, reservation flow, Google Maps integration, and full SEO/schema markup."
+  },
+  {
+    "categories": "ai",
+    "tags": [
+      "Python",
+      "CNN",
+      "Machine Learning",
+      "PyTorch"
+    ],
+    "live": "",
+    "github": "",
+    "subtitle": "APPLIED DEEP LEARNING & RESEARCH",
+    "url": "research.iub.edu.bd/deep-learning",
+    "status": "PyTorch / CNN",
+    "image": "assets/logos/academic-research.jpg",
+    "imageAlt": "Academic & Research Projects visualization",
+    "title": "Academic & Research Projects",
+    "description": "Lipoma vs. WDLPS Classification — applied convolutional neural networks to classify soft-tissue tumors from medical imaging data to support clinical diagnosis.\n\nBTC Price Prediction — applied polynomial regression to historical Bitcoin price data to model and forecast price trends."
+  }
+]

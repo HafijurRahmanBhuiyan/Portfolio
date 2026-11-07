@@ -1,0 +1,1 @@
+(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('hrb-theme')==='light'?'light':'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();

@@ -59,6 +59,12 @@
   color-scheme: light;
 }
 
+@property --card-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 *, *::before, *::after{box-sizing:border-box}
 
 html{
@@ -85,6 +91,9 @@ body{
   html{scroll-behavior: auto}
   *{animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;}
   .card-3d{transform: none !important;}
+  :is(.card-3d, .hero-stat-card, .dev-console-card, .contact-card, .modal-3d-card)::after{
+    animation: none !important;
+  }
   #ambientCanvas{display: none;}
 }
 
@@ -560,17 +569,15 @@ main#main:nth-of-type(1) > section#home:nth-of-type(1) > div:nth-of-type(1) > di
 .social-row{display: flex; gap: 10px}
 
 /* ==========================================================================
-   HERO RIGHT COLUMN: 3D HOLOGRAPHIC PROFILE & INTERACTIVE TERMINAL
+   HERO RIGHT COLUMN: HOLOGRAPHIC PROFILE & INTERACTIVE TERMINAL
    ========================================================================== */
 .hero-visual-wrap{
   display: flex; flex-direction: column; gap: 24px; align-items: center;
-  perspective: 1200px;
 }
 
-/* 3D Profile Frame */
+/* Profile Frame */
 .hero-avatar-stage{
   position: relative; width: 220px; height: 220px;
-  perspective: 1000px; transform-style: preserve-3d;
 }
 .avatar-ring{
   width: 100%; height: 100%; border-radius: 50%; padding: 5px;
@@ -596,7 +603,7 @@ main#main:nth-of-type(1) > section#home:nth-of-type(1) > div:nth-of-type(1) > di
   background: var(--surface2); color: var(--muted);
 }
 
-/* Floating 3D Micro-Badges */
+/* Floating Micro-Badges */
 .orbit-chip{
   position: absolute; z-index: 10;
   display: inline-flex; align-items: center; gap: 7px;
@@ -627,8 +634,7 @@ main#main:nth-of-type(1) > section#home:nth-of-type(1) > div:nth-of-type(1) > di
   overflow: hidden;
   box-shadow: var(--shadow-md), 0 0 20px rgba(0, 240, 255, 0.08);
   backdrop-filter: blur(16px);
-  transform-style: preserve-3d;
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .dev-console-card:hover{
   border-color: rgba(0, 240, 255, 0.35);
@@ -695,27 +701,23 @@ h2.sec-title{
 .sec-title.in::after{width: 74px}
 
 /* ==========================================================================
-   SCROLL-TRIGGERED 3D REVEAL SYSTEM (UP & DOWN)
+   SCROLL-TRIGGERED REVEAL SYSTEM (UP & DOWN)
    ========================================================================== */
 .reveal{
   opacity: 0;
-  transform: perspective(1200px) rotateX(12deg) translateY(38px) scale(0.96);
-  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
-  /* No persistent will-change here: with ~28 .reveal elements this used to
-     promote every one of them to its own compositor layer for the whole
-     session (huge GPU memory cost, especially on mobile). opacity/transform
-     transitions are already compositor-accelerated. */
+  transform: translateY(24px);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .reveal.in{
   opacity: 1;
-  transform: perspective(1200px) rotateX(0deg) translateY(0) scale(1);
+  transform: translateY(0);
 }
 body.scrolling-up .reveal:not(.in){
-  transform: perspective(1200px) rotateX(-8deg) translateY(-24px) scale(0.97);
+  transform: translateY(-16px);
 }
 
 /* ==========================================================================
-   3D CARD SYSTEM (PROJECTS, SKILLS, EXPERIENCE, EDUCATION, FACTS)
+   CARD SYSTEM (PROJECTS, SKILLS, EXPERIENCE, EDUCATION, FACTS)
    ========================================================================== */
 .card-3d{
   position: relative;
@@ -723,34 +725,19 @@ body.scrolling-up .reveal:not(.in){
   border: 1px solid var(--border-bright);
   border-radius: 20px;
   box-shadow: var(--shadow-md);
-  /* Frosted surface samples the animated ambient canvas behind it, so every
-     visible card re-blurs a large region on each composited frame. Kept at the
-     original radius to preserve the exact look; cost is reduced elsewhere. */
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  transform-style: preserve-3d;
   transition:
-    transform 0.65s cubic-bezier(0.19, 1, 0.22, 1),
     border-color 0.25s ease,
     box-shadow 0.35s ease,
     background 0.25s ease;
   cursor: pointer;
   outline: none;
 }
-.card-3d.is-magnet-active{
-  /* Promote only the card currently under the pointer instead of all ~20
-     cards at all times. */
-  will-change: transform;
-  transition:
-    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.25s ease,
-    box-shadow 0.25s ease,
-    background 0.25s ease;
-}
 .card-3d:hover{
   background: var(--bg-card-hover);
   border-color: rgba(0, 240, 255, 0.4);
   box-shadow:
-    var(--card-shadow-x, 0px) var(--card-shadow-y, 22px) 50px -12px rgba(0, 0, 0, 0.85),
+    0 22px 50px -12px rgba(0, 0, 0, 0.85),
     0 0 35px -8px rgba(0, 240, 255, 0.28);
 }
 .card-3d:focus-visible{
@@ -758,17 +745,7 @@ body.scrolling-up .reveal:not(.in){
   box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.3);
 }
 
-/* Dynamic Glare Following Cursor */
-.card-glare{
-  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(circle 340px at var(--glare-x, 50%) var(--glare-y, 30%), rgba(255, 255, 255, 0.16), transparent 75%);
-  mix-blend-mode: overlay; opacity: 0;
-  transition: opacity 0.2s ease;
-  z-index: 10;
-}
-.card-3d:hover .card-glare{opacity: 1}
-
-/* Interactive 3D Open Button Badge */
+/* Interactive Open Button Badge */
 .card-3d-open-btn{
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--mono); font-size: 11px; font-weight: 600;
@@ -826,7 +803,7 @@ body.scrolling-up .reveal:not(.in){
 .skill-card{padding: 26px}
 .skill-card-header{
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 18px; transform: translateZ(20px);
+  margin-bottom: 18px;
 }
 .skill-card h3{
   font-family: var(--head); font-size: 17.5px; margin: 0; color: var(--text);
@@ -842,7 +819,7 @@ body.scrolling-up .reveal:not(.in){
   border-color: var(--accent-cyan) !important;
 }
 
-.tags{display: flex; flex-wrap: wrap; gap: 8px; transform: translateZ(16px)}
+.tags{display: flex; flex-wrap: wrap; gap: 8px}
 .tag{
   font-family: var(--mono); font-size: 12px; color: var(--text);
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);
@@ -878,16 +855,15 @@ body.scrolling-up .reveal:not(.in){
 .tl-card:hover .tl-dot{transform: scale(1.25)}
 .tl-header-row{
   display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
-  margin-bottom: 6px; transform: translateZ(22px);
+  margin-bottom: 6px;
 }
 .tl-card h3{font-family: var(--head); font-size: 19px; margin: 0; color: var(--text)}
 .tl-meta{
   color: var(--accent-cyan); font-family: var(--mono); font-size: 13px; font-weight: 500;
-  margin-bottom: 18px; transform: translateZ(16px);
+  margin-bottom: 18px;
 }
 .tl-card ul{
   margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 15px; line-height: 1.8;
-  transform: translateZ(14px);
 }
 .tl-card ul li{margin-bottom: 8px}
 
@@ -912,18 +888,21 @@ body.scrolling-up .reveal:not(.in){
 }
 
 .project-grid{
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; align-items: stretch;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; align-items: stretch;
+}
+@media (min-width: 1100px){
+  .project-grid{grid-template-columns: repeat(3, 1fr); gap: 18px}
 }
 .pcard{
-  padding: 26px; display: flex; flex-direction: column; height: 100%; border-radius: 20px;
+  padding: 20px; display: flex; flex-direction: column; height: 100%; border-radius: 16px;
 }
 
 .pcard-num-token{
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
   color: var(--accent-cyan); letter-spacing: 0.08em;
   background: rgba(0, 240, 255, 0.09); border: 1px solid rgba(0, 240, 255, 0.28);
-  padding: 3px 10px; border-radius: 7px; display: inline-flex; align-items: center; gap: 6px;
-  margin-bottom: 14px; width: fit-content;
+  padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;
+  margin-bottom: 10px; width: fit-content;
 }
 .pcard-num-token .dot-pulse{
   width: 5px; height: 5px; border-radius: 50%; background: var(--accent-cyan);
@@ -932,39 +911,39 @@ body.scrolling-up .reveal:not(.in){
 
 /* macOS Browser Window Header & Logo Container */
 .pcard-logo{
-  width: 100%; border-radius: 14px; overflow: hidden; background: #060B18;
+  width: 100%; border-radius: 10px; overflow: hidden; background: #060B18;
   border: 1px solid var(--border-bright); display: flex; flex-direction: column;
-  margin-bottom: 20px; box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.6);
+  margin-bottom: 14px; box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
   flex-shrink: 0;
 }
 .pcard-window-bar{
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 14px; background: rgba(0, 0, 0, 0.5);
+  padding: 6px 10px; background: rgba(0, 0, 0, 0.5);
   border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.window-dots{display: flex; gap: 6px}
-.wdot{width: 9px; height: 9px; border-radius: 50%}
+.window-dots{display: flex; gap: 4px}
+.wdot{width: 7px; height: 7px; border-radius: 50%}
 .wdot-red{background: #EF4444}
 .wdot-yellow{background: #F59E0B}
 .wdot-green{background: #10B981}
 
 .window-url{
-  font-family: var(--mono); font-size: 11px; color: var(--muted);
-  background: rgba(255, 255, 255, 0.05); padding: 2px 10px; border-radius: 5px;
-  border: 1px solid var(--border); max-width: 220px; overflow: hidden;
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  background: rgba(255, 255, 255, 0.05); padding: 1px 8px; border-radius: 4px;
+  border: 1px solid var(--border); max-width: 170px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
 .window-status{
-  display: flex; align-items: center; gap: 6px; font-family: var(--mono);
-  font-size: 10.5px; color: #10B981; font-weight: 600;
+  display: flex; align-items: center; gap: 5px; font-family: var(--mono);
+  font-size: 9.5px; color: #10B981; font-weight: 600;
 }
 .window-status .pulse-dot{
-  width: 6px; height: 6px; border-radius: 50%; background: #10B981;
+  width: 5px; height: 5px; border-radius: 50%; background: #10B981;
   box-shadow: 0 0 8px #10B981;
 }
 
 .pcard-logo-inner{
-  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  position: relative; width: 100%; aspect-ratio: 16 / 8;
   background: #030712; display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
@@ -979,21 +958,22 @@ body.scrolling-up .reveal:not(.in){
 
 .pcard-top{
   display: flex; justify-content: space-between; align-items: flex-start;
-  gap: 12px; margin-bottom: 8px;
+  gap: 10px; margin-bottom: 6px;
 }
 .pcard h3{
-  font-family: var(--head); font-size: 18.5px; margin: 0; line-height: 1.35; color: var(--text);
-  min-height: 50px; display: flex; align-items: center;
+  font-family: var(--head); font-size: 15.5px; margin: 0; line-height: 1.32; color: var(--text);
+  min-height: 41px; display: flex; align-items: center;
 }
 .pcard p.desc{
-  color: var(--text-secondary); font-size: 14.5px; line-height: 1.7; margin: 0 0 18px;
+  color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin: 0 0 14px;
   flex: 1;
 }
-.pcard .tags{margin-bottom: 20px; min-height: 34px}
-.pcard-links{display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 4px}
+.pcard .tags{margin-bottom: 14px; min-height: 0; gap: 6px}
+.pcard .tag{font-size: 11px; padding: 4px 8px; border-radius: 6px}
+.pcard-links{display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 2px}
 .plink{
-  display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
-  padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border-bright);
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+  padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-bright);
   background: var(--surface2); color: var(--text); cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1016,10 +996,9 @@ body.scrolling-up .reveal:not(.in){
   display: flex; justify-content: space-between; gap: 24px; align-items: center;
   padding: 24px 28px;
 }
-.edu-content{transform: translateZ(20px)}
 .edu-item h3{font-family: var(--head); font-size: 17.5px; margin: 0 0 5px; color: var(--text)}
 .edu-item .inst{color: var(--text-secondary); font-size: 14.5px}
-.edu-right{display: flex; align-items: center; gap: 18px; transform: translateZ(22px)}
+.edu-right{display: flex; align-items: center; gap: 18px}
 .edu-item .yr{
   font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent-cyan);
   white-space: nowrap; background: rgba(0, 240, 255, 0.08);
@@ -1075,7 +1054,7 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
 .back-top:hover{color: var(--accent-cyan)}
 
 /* ==========================================================================
-   3D CARD MODAL SYSTEM & DUAL-FACED 3D COIN FLIP (EVERY CARD OPENS IN 3D)
+   CARD MODAL SYSTEM (EVERY CARD OPENS IN A DETAILS VIEW)
    ========================================================================== */
 .modal-backdrop{
   position: fixed; inset: 0; z-index: 10000;
@@ -1091,14 +1070,11 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
 
 .modal-3d-stage{
   width: 100%; max-width: 780px; max-height: 92vh;
-  perspective: 1500px;
   display: flex; align-items: center; justify-content: center;
 }
 
 .modal-3d-card-wrapper{
   width: 100%;
-  transform-style: preserve-3d;
-  will-change: transform;
 }
 
 .modal-3d-card{
@@ -1107,16 +1083,9 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 35px 95px -15px rgba(0, 0, 0, 0.9), 0 0 60px -10px var(--accent-glow);
-  transform-style: preserve-3d;
-  will-change: transform;
   overflow: hidden;
   max-height: calc(92vh - 20px);
   display: flex; flex-direction: column;
-  transition: transform 0.55s cubic-bezier(0.19, 1, 0.22, 1);
-}
-
-.modal-3d-card.flipped{
-  transform: perspective(1500px) rotateY(180deg) !important;
 }
 
 .modal-3d-card::before{
@@ -1125,56 +1094,29 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
   mix-blend-mode: color-dodge; opacity: 0.65; z-index: 9;
 }
 
-/* 3D Unfolding Keyframe Animation */
+/* Modal Open / Close Animation */
 .modal-backdrop.active .modal-3d-card-wrapper{
-  animation: card3DOpen 0.68s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  animation: cardOpen 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 .modal-backdrop.closing .modal-3d-card-wrapper{
-  animation: card3DClose 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: cardClose 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes card3DOpen{
-  0%{
-    opacity: 0;
-    transform: perspective(1500px) rotateX(-32deg) rotateY(22deg) rotateZ(-3deg) translateZ(-180px) scale(0.7);
-    filter: blur(8px);
-  }
-  65%{
-    opacity: 1;
-    transform: perspective(1500px) rotateX(4deg) rotateY(-3deg) rotateZ(1deg) translateZ(28px) scale(1.02);
-    filter: blur(0);
-  }
-  100%{
-    opacity: 1;
-    transform: perspective(1500px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(0) scale(1);
-    filter: blur(0);
-  }
+@keyframes cardOpen{
+  0%{opacity: 0; transform: translateY(16px) scale(0.98)}
+  100%{opacity: 1; transform: translateY(0) scale(1)}
 }
 
-@keyframes card3DClose{
-  0%{
-    opacity: 1;
-    transform: perspective(1500px) rotateX(0deg) rotateY(0deg) scale(1) translateZ(0);
-  }
-  100%{
-    opacity: 0;
-    transform: perspective(1500px) rotateX(25deg) rotateY(-15deg) scale(0.8) translateZ(-120px);
-    filter: blur(5px);
-  }
+@keyframes cardClose{
+  0%{opacity: 1; transform: translateY(0) scale(1)}
+  100%{opacity: 0; transform: translateY(10px) scale(0.98)}
 }
 
 /* Modal Inner Elements */
-.modal-glare{
-  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(circle 440px at var(--modal-glare-x, 50%) var(--modal-glare-y, 30%), rgba(255, 255, 255, 0.22), transparent 75%);
-  mix-blend-mode: overlay; z-index: 10;
-}
-
 .modal-top-bar{
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 26px; border-bottom: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.35);
-  transform: translateZ(25px);
   z-index: 5;
 }
 .modal-badge, .modal-3d-badge{
@@ -1199,13 +1141,12 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
 
 .modal-body{
   padding: 30px; overflow-y: auto; overscroll-behavior: contain;
-  transform: translateZ(20px); z-index: 2;
+  z-index: 2;
 }
 .modal-media-wrap{
   height: 190px; border-radius: 18px; overflow: hidden; background: var(--bg);
   border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
   margin-bottom: 24px; position: relative; box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.6);
-  transform: translateZ(32px);
 }
 .modal-media-wrap img{max-width: 100%; max-height: 100%; object-fit: contain}
 
@@ -1236,7 +1177,7 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
   padding: 13px 26px; border-top: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.3);
   font-family: var(--mono); font-size: 11.5px; color: var(--muted);
-  transform: translateZ(10px); display: flex; justify-content: space-between; align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
 }
 .modal-footer-hint kbd{
   display: inline-block; padding: 2px 7px; border: 1px solid var(--border); border-radius: 5px;
@@ -1257,17 +1198,55 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
 .toast-box svg{color: #10B981}
 
 /* ==========================================================================
+   ANIMATED GRADIENT BORDER SYSTEM (ALL CARDS, CONTINUOUS)
+   ========================================================================== */
+:is(.card-3d, .hero-stat-card, .dev-console-card, .contact-card, .modal-3d-card){
+  position: relative;
+}
+
+:is(.card-3d, .hero-stat-card, .dev-console-card, .contact-card, .modal-3d-card)::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--card-border-angle),
+    rgba(0, 240, 255, 0.08) 0deg,
+    var(--accent-cyan) 55deg,
+    var(--accent) 120deg,
+    var(--accent-purple) 185deg,
+    var(--accent-pink) 240deg,
+    rgba(0, 240, 255, 0.08) 310deg,
+    rgba(0, 240, 255, 0.08) 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: cardBorderSpin 7s linear infinite;
+  pointer-events: none;
+  z-index: 20;
+}
+
+@keyframes cardBorderSpin{
+  to{--card-border-angle: 360deg}
+}
+
+/* ==========================================================================
    RESPONSIVE DESIGN SYSTEM (ALL DEVICES: MOBILE, TABLET, LAPTOP, DESKTOP)
    ========================================================================== */
 
 /* Coarse pointer devices (touchscreens: phones, iPads, tablets) */
 @media (hover: none) and (pointer: coarse){
   .card-3d:hover{
-    transform: none !important;
     box-shadow: var(--shadow-md) !important;
     border-color: var(--border-bright) !important;
   }
-  .card-glare{display: none !important}
   #cursorGlow{display: none !important}
   .hero-stat-card:hover{transform: none !important}
   .orbit-chip:hover{transform: none !important}
@@ -1379,11 +1358,13 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
 
   /* Skills & Projects Grids */
   .skills-grid{grid-template-columns: 1fr}
-  .pcard{padding: 20px 16px}
-  .pcard-window-bar{padding: 8px 12px}
-  .window-url{max-width: 130px; font-size: 10.5px}
-  .pcard-logo{height: 140px; margin-bottom: 18px}
-  .pcard-top{flex-direction: column; align-items: flex-start; gap: 10px}
+  .pcard{padding: 16px 14px}
+  .pcard-window-bar{padding: 6px 9px}
+  .window-url{max-width: 120px; font-size: 9.5px}
+  .pcard-logo{height: 118px; margin-bottom: 12px}
+  .pcard-top{flex-direction: column; align-items: flex-start; gap: 8px}
+  .pcard h3{font-size: 15px; min-height: 0}
+  .pcard p.desc{font-size: 12.5px; margin-bottom: 12px}
   .pcard-links{width: 100%}
   .pcard-links .plink{
     flex: 1 1 calc(50% - 6px);
@@ -1525,3 +1506,6 @@ footer{border-top: 1px solid var(--border); padding: 36px 0}
   }
   .console-tabs{gap: 2px}
 }
+/* Discreet keyboard-accessible entry to Developer Mode */
+.developer-mode-link{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.developer-mode-link:focus-visible{position:static;width:auto;height:auto;overflow:visible;clip-path:none;padding:8px 12px;border:1px solid var(--border);border-radius:8px;color:var(--text)}
