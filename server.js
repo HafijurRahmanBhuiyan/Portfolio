@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanProject } from './lib/projects.js';
-import { resolveConfig } from './lib/config.js';
+import { configurationIssueCodes, resolveConfig } from './lib/config.js';
 import { runMigrations } from './lib/migrations.js';
 import {
   API_LISTEN_HOST,
@@ -20,7 +20,12 @@ let config;
 try {
   config = resolveConfig(process.env);
 } catch {
-  console.error(JSON.stringify({ type: 'configuration_error' }));
+  console.error(
+    JSON.stringify({
+      type: 'configuration_error',
+      reasons: configurationIssueCodes(process.env),
+    }),
+  );
   process.exit(1);
 }
 
@@ -59,7 +64,12 @@ try {
   // service does not set PORT. The listener always binds to 0.0.0.0.
   port = resolveApiPort(process.env);
 } catch {
-  console.error(JSON.stringify({ type: 'configuration_error' }));
+  console.error(
+    JSON.stringify({
+      type: 'configuration_error',
+      reasons: ['INVALID_API_PORT'],
+    }),
+  );
   process.exit(1);
 }
 const requestId = () => crypto.randomUUID();
