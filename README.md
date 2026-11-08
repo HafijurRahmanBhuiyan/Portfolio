@@ -6,8 +6,7 @@ The site is a résumé in browser form: an ambient Web Audio soundscape, an anim
 
 ---
 
-## Live Link: https://hafijurrahmanbhuiyan.github.io/Portfolio
-
+## Live Link: https://hafijurportfolio.vercel.app
 ## Table of Contents
 
 - [Highlights](#highlights)
