@@ -545,57 +545,74 @@ app.use((error, _req, res, _next) => {
 
 let server;
 async function initializeDatabase() {
-  await fs.promises.mkdir(uploadsDir, { recursive: true });
-  await fs.promises.access(uploadsDir, fs.constants.W_OK);
-  console.log(JSON.stringify({ type: 'upload_store_ready' }));
-  await runMigrations(pool, root);
-  const { rows } = await pool.query(
-    'SELECT count(*)::int AS count FROM projects',
-  );
-  if (!rows[0].count) {
-    const seed = JSON.parse(
-      fs.readFileSync(path.join(root, 'projects.json'), 'utf8'),
+  let stage = 'upload_directory';
+  try {
+    await fs.promises.mkdir(uploadsDir, { recursive: true });
+    await fs.promises.access(uploadsDir, fs.constants.W_OK);
+    console.log(JSON.stringify({ type: 'upload_store_ready' }));
+    stage = 'migrations';
+    await runMigrations(pool, root);
+    stage = 'seed_query';
+    const { rows } = await pool.query(
+      'SELECT count(*)::int AS count FROM projects',
     );
-    for (let i = 0; i < seed.length; i++) {
-      const project = cleanProject({
-        ...seed[i],
-        id: seed[i].id || crypto.randomUUID(),
-      });
-      await pool.query(
-        'INSERT INTO projects(id,sort_order,data) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING',
-        [project.id, i, project],
+    if (!rows[0].count) {
+      stage = 'seed_projects';
+      const seed = JSON.parse(
+        fs.readFileSync(path.join(root, 'projects.json'), 'utf8'),
       );
+      for (let i = 0; i < seed.length; i++) {
+        const project = cleanProject({
+          ...seed[i],
+          id: seed[i].id || crypto.randomUUID(),
+        });
+        await pool.query(
+          'INSERT INTO projects(id,sort_order,data) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING',
+          [project.id, i, project],
+        );
+      }
     }
+    stage = 'listen';
+    server = app.listen(port, API_LISTEN_HOST, () =>
+      console.log(JSON.stringify({ type: 'server_ready', port })),
+    );
+    const cleanup = setInterval(
+      () => {
+        pool
+          .query(
+            "DELETE FROM admin_sessions WHERE expires_at < now() OR last_seen_at < now()-interval '30 minutes' OR (revoked AND last_seen_at < now()-interval '7 days')",
+          )
+          .catch(() => {});
+        pool
+          .query(
+            "DELETE FROM login_attempts WHERE updated_at < now()-interval '1 day'",
+          )
+          .catch(() => {});
+        // Audit records are retained for 365 days. They contain only request
+        // IDs, HMAC session references, actor identity, and non-secret summaries.
+        pool
+          .query(
+            "DELETE FROM admin_audit WHERE created_at < now()-interval '365 days'",
+          )
+          .catch(() => {});
+      },
+      60 * 60 * 1000,
+    );
+    cleanup.unref();
+  } catch (error) {
+    error.startupStage = stage;
+    throw error;
   }
-  server = app.listen(port, API_LISTEN_HOST, () =>
-    console.log(JSON.stringify({ type: 'server_ready', port })),
-  );
-  const cleanup = setInterval(
-    () => {
-      pool
-        .query(
-          "DELETE FROM admin_sessions WHERE expires_at < now() OR last_seen_at < now()-interval '30 minutes' OR (revoked AND last_seen_at < now()-interval '7 days')",
-        )
-        .catch(() => {});
-      pool
-        .query(
-          "DELETE FROM login_attempts WHERE updated_at < now()-interval '1 day'",
-        )
-        .catch(() => {});
-      // Audit records are retained for 365 days. They contain only request
-      // IDs, HMAC session references, actor identity, and non-secret summaries.
-      pool
-        .query(
-          "DELETE FROM admin_audit WHERE created_at < now()-interval '365 days'",
-        )
-        .catch(() => {});
-    },
-    60 * 60 * 1000,
-  );
-  cleanup.unref();
 }
-initializeDatabase().catch(() => {
-  console.error(JSON.stringify({ type: 'startup_failed' }));
+initializeDatabase().catch((error) => {
+  console.error(
+    JSON.stringify({
+      type: 'startup_failed',
+      stage: error?.startupStage || 'startup',
+      sqlState: error?.code || 'unknown',
+      errorName: error?.name || 'Error',
+    }),
+  );
   process.exit(1);
 });
 let shuttingDown = false;
